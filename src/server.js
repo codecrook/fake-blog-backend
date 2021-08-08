@@ -1,8 +1,7 @@
-import express from 'express';
-import bodyParser from 'body-parser';
+import express, { json } from 'express';
 
 const app = express();
-app.use(bodyParser.json());
+app.use(json());
 
 app.get('/hello', (req, res) => res.send('Hello!'));
 app.post('/hello', (req, res) => res.send(`Hello, ${req.body.name}!`));
