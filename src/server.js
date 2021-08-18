@@ -5,13 +5,16 @@ app.use(json());
 
 const artclesInfo = {
     'learn-react': {
-        upvotes: 0
+        upvotes: 0,
+        comments: []
     },
     'learn-node': {
-        upvotes: 0
+        upvotes: 0,
+        comments: []
     },
     'my-thoughts-on-resume': {
-        upvotes: 0
+        upvotes: 0,
+        comments: []
     }
 };
 
@@ -25,6 +28,16 @@ app.post('/api/articles/:name/upvote', (req, res) => {
     artclesInfo[articleName].upvotes += 1;
 
     res.status(200).send(`${articleName} now has ${artclesInfo[articleName].upvotes} upvotes!`);
+});
+
+//API endpoint for adding comment on an article
+app.post('/api/articles/:name/add-comment', (req, res) => {
+    const articleName = req.params.name;
+    const { username, text } = req.body;
+
+    artclesInfo[articleName].comments.push({ username, text });
+
+    res.status(200).send(`New comment added for atricle: ${articleName}!`);
 });
 
 
