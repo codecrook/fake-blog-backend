@@ -1,4 +1,5 @@
 import express, { json } from 'express';
+import { MongoClient } from 'mongodb';
 
 const app = express();
 app.use(json());
@@ -21,6 +22,25 @@ const artclesInfo = {
 app.get('/hello', (req, res) => res.send('Hello!'));
 app.get('/hello/:name', (req, res) => res.send(`Hello, ${req.params.name}!`));
 app.post('/hello', (req, res) => res.send(`Hello, ${req.body.name}!`));
+
+//API endpoint to get associated data of an article
+app.get('/api/articles/:name', async (req, res) => {
+    try {
+
+        const uri = 'mongodb+srv://<auth_details>@cluster0.lk6zp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority';
+        const client = await MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+        const db = client.db('my-blog')
+
+        const articleName = req.params.name;
+        const articleInfo = await db.collection('articles').findOne({ name: articleName });
+        res.status(200).json(articleInfo);
+
+        client.close();
+    } catch (error) {
+        res.status(500).json({ message: 'Error in DB connection!', error });
+    }
+
+});
 
 //API endpoint for upvoting an article
 app.post('/api/articles/:name/upvote', (req, res) => {
