@@ -23,31 +23,48 @@ app.get('/hello', (req, res) => res.send('Hello!'));
 app.get('/hello/:name', (req, res) => res.send(`Hello, ${req.params.name}!`));
 app.post('/hello', (req, res) => res.send(`Hello, ${req.body.name}!`));
 
-//API endpoint to get associated data of an article
-app.get('/api/articles/:name', async (req, res) => {
+const withDB = async (operations, res) => {
     try {
 
-        const uri = 'mongodb+srv://<auth_details>@cluster0.lk6zp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority';
+        const uri = 'mongodb+srv://<username>:<password>@cluster0.lk6zp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority';
         const client = await MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-        const db = client.db('my-blog')
+        const db = client.db('my-blog');
 
-        const articleName = req.params.name;
-        const articleInfo = await db.collection('articles').findOne({ name: articleName });
-        res.status(200).json(articleInfo);
+        await operations(db);
 
         client.close();
     } catch (error) {
         res.status(500).json({ message: 'Error in DB connection!', error });
     }
+};
 
+
+//API endpoint to get associated data of an article
+app.get('/api/articles/:name', async (req, res) => {
+    withDB(async (db) => {
+        const articleName = req.params.name;
+        const articleInfo = await db.collection('articles').findOne({ name: articleName });
+
+        res.status(200).json(articleInfo);
+    }, res);
 });
 
 //API endpoint for upvoting an article
 app.post('/api/articles/:name/upvote', (req, res) => {
-    const articleName = req.params.name;
-    artclesInfo[articleName].upvotes += 1;
+    withDB(async (db) => {
+        const articleName = req.params.name;
+        const articleInfo = await db.collection('articles').findOne({ name: articleName });
 
-    res.status(200).send(`${articleName} now has ${artclesInfo[articleName].upvotes} upvotes!`);
+        await db.collection('articles').updateOne({ name: articleName }, {
+            '$set': {
+                upvotes: articleInfo.upvotes + 1
+            }
+        });
+
+        const updatedArticleInfo = await db.collection('articles').findOne({ name: articleName });
+
+        res.status(200).json(updatedArticleInfo);
+    }, res);
 });
 
 //API endpoint for adding comment on an article
