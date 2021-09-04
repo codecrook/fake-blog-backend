@@ -4,29 +4,10 @@ import { MongoClient } from 'mongodb';
 const app = express();
 app.use(json());
 
-const artclesInfo = {
-    'learn-react': {
-        upvotes: 0,
-        comments: []
-    },
-    'learn-node': {
-        upvotes: 0,
-        comments: []
-    },
-    'my-thoughts-on-resume': {
-        upvotes: 0,
-        comments: []
-    }
-};
-
-app.get('/hello', (req, res) => res.send('Hello!'));
-app.get('/hello/:name', (req, res) => res.send(`Hello, ${req.params.name}!`));
-app.post('/hello', (req, res) => res.send(`Hello, ${req.body.name}!`));
-
 const withDB = async (operations, res) => {
     try {
 
-        const uri = 'mongodb+srv://<username>:<password>@cluster0.lk6zp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority';
+        const uri = 'mongodb+srv://<auth_details>@cluster0.lk6zp.mongodb.net/myFirstDatabase?retryWrites=true&w=majority';
         const client = await MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db('my-blog');
 
@@ -69,12 +50,21 @@ app.post('/api/articles/:name/upvote', (req, res) => {
 
 //API endpoint for adding comment on an article
 app.post('/api/articles/:name/add-comment', (req, res) => {
-    const articleName = req.params.name;
-    const { username, text } = req.body;
+    withDB(async (db) => {
+        const articleName = req.params.name;
+        const { username, text } = req.body;
 
-    artclesInfo[articleName].comments.push({ username, text });
+        const articleInfo = await db.collection('articles').findOne({ name: articleName });
 
-    res.status(200).send(`New comment added for atricle: ${articleName}!`);
+        await db.collection('articles').updateOne({ name: articleName }, {
+            '$set': {
+                comments: articleInfo.comments.concat({ username, text })
+            }
+        });
+
+        const updatedArticleInfo = await db.collection('articles').findOne({ name: articleName });
+        res.status(200).json(updatedArticleInfo);
+    }, res);
 });
 
 
